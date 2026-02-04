@@ -1,7 +1,8 @@
-# graphconformal
+# GraphConformal
 
 ## SpecBridge
-(Model repo)[https://github.com/HassounLab/SpecBridge/tree/main]
+We are using the SpecBridge for Molecule Retrievals tasks, [Model repo](https://github.com/HassounLab/SpecBridge)
+
 ### Instalation Guide
  ```bash
 cd Models/SpecBridge/
@@ -29,3 +30,6 @@ python -c "import specbridge; print('SpecBridge installed successfully')"
 # Check DreaMS
 python -c "import dreams; print('DreaMS installed successfully')"
 ```
+
+## Any2Graph
+Graph-Valued Regression [Model repo](https://github.com/KrzakalaPaul/Any2Graph)
