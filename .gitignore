@@ -21,5 +21,6 @@ analysis_ms/
 .vscode/ 
 
 # Ignore all folders named data
-****/data/
 **/runs/
+Models/Any2Graph/Img2Graph/Coloring/data/
+Models/SpecBridge/data/

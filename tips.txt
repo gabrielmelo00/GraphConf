@@ -1,0 +1,2 @@
+#Create a kernel for each venv model
+python -m ipykernel install --user --name=specbridge --display-name="SpecBridge (.venv)"
