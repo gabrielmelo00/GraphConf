@@ -31,5 +31,8 @@ python -c "import specbridge; print('SpecBridge installed successfully')"
 python -c "import dreams; print('DreaMS installed successfully')"
 ```
 
+### Download weights
+Run `download_from_zenodo.sh` and `download_dreams_weights.sh`
+
 ## Any2Graph
 Graph-Valued Regression [Model repo](https://github.com/KrzakalaPaul/Any2Graph)

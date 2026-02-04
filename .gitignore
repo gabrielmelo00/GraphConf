@@ -22,3 +22,4 @@ analysis_ms/
 
 # Ignore all folders named data
 ****/data/
+**/runs/
