@@ -1,6 +1,7 @@
 # graphconformal
 
 ## SpecBridge
+(Model repo)[https://github.com/HassounLab/SpecBridge/tree/main]
 ### Instalation Guide
  ```bash
 cd Models/SpecBridge/
