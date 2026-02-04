@@ -6,3 +6,19 @@ outputs/
 checkpoints/
 wandb/
 .slurm/
+/venv/
+/runs/
+/logs/
+runs/*
+data/*
+cache/
+wandb/
+figs/
+analysis_ms/
+*.err
+*.json
+*.log
+.vscode/ 
+
+# Ignore all folders named data
+****/data/
