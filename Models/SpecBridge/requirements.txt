@@ -40,3 +40,4 @@ fsspec==2025.9.0
 python-dateutil
 pulp
 myopic-mces
+pot==0.9.6
