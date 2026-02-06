@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Self
+from typing import Iterable, Self
 
 import numpy as np
 from rdkit import Chem
@@ -23,6 +23,16 @@ class Graph:
     def shortest_paths(self) -> np.ndarray:
         """Shortest paths between node pairs."""
         return shortest_path(self.A, directed=False, unweighted=True)
+
+    @staticmethod
+    def stream_from_smiles(smiles: Iterable[str]) -> Iterable[Self]:
+        """Stream Graph objects from an iterable of SMILES strings.
+        Do this to process large smiles datasets without keeping large matrices in memory."""
+        for s in smiles:
+            try:
+                yield Graph.from_smiles(s)
+            except Exception as e:
+                print(f"Error processing SMILES: {e}")
 
     @classmethod
     def from_smiles(cls, smiles: str, use_onehot=True) -> Self:
