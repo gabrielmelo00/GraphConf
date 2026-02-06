@@ -25,14 +25,15 @@ class Graph:
         return shortest_path(self.A, directed=False, unweighted=True)
 
     @staticmethod
-    def stream_from_smiles(smiles: Iterable[str]) -> Iterable[Self]:
+    def stream_from_smiles(smiles: Iterable[str], verbose=False) -> Iterable[Self]:
         """Stream Graph objects from an iterable of SMILES strings.
         Do this to process large smiles datasets without keeping large matrices in memory."""
         for s in smiles:
             try:
                 yield Graph.from_smiles(s)
             except Exception as e:
-                print(f"Error processing SMILES: {e}")
+                if verbose:
+                    print(f"Error processing SMILES: {e}")
 
     @classmethod
     def from_smiles(cls, smiles: str, use_onehot=True) -> Self:

@@ -1,8 +1,7 @@
-from typing import Iterable, Literal
+from typing import Literal
 
 import numpy as np
 import ot
-from tqdm import tqdm
 
 from conformal.graph import Graph
 
@@ -68,12 +67,3 @@ class FGW:
             loss_fun=self.loss,
             alpha=self.alpha,
         )
-
-    def stream(
-        self, g1s: Iterable[Graph], g2s: Iterable[Graph], n: int | None = None
-    ) -> Iterable[float]:
-        """Compute distances for a list of graph pairs,
-        in a stream-compatible way (without keeping large matrices in memory)."""
-
-        for g1, g2 in tqdm(zip(g1s, g2s), desc="computing FGW", total=n):
-            yield self(g1, g2)
