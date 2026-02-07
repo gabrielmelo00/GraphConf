@@ -2,6 +2,7 @@ from typing import Literal
 
 import numpy as np
 import ot
+import scipy
 
 from conformal.graph import Graph
 
@@ -14,6 +15,7 @@ class FGW:
         cost: Literal["adjacency", "laplacian", "shortest_path"] = "adjacency",
         alpha=0.5,
         k=1,
+        lmbda: float | None = None,
         diffusion=False,
         loss: Literal["square_loss", "kl_loss"] = "square_loss",
     ):
@@ -22,12 +24,14 @@ class FGW:
             cost: the cost matrix to use
             alpha: trade-off parameter
             k: cost matrix exponent
+            lmbda: use exp(lmbda * C) instead of C as cost matrix
             diffusion: whether to diffuse node features with the cost matrix
             loss: solver loss function
         """
         self.cost = cost
         self.alpha = alpha
         self.k = k
+        self.lmbda = lmbda
         self.diffusion = diffusion
         self.loss = loss
 
@@ -45,7 +49,11 @@ class FGW:
         C1 = self.cost_matrix(g1)
         C2 = self.cost_matrix(g2)
 
-        if self.k > 1:
+        if self.lmbda is not None:
+            C1 = scipy.linalg.expn(self.lmbda * C1)
+            C2 = scipy.linalg.expn(self.lmbda * C2)
+
+        elif self.k > 1:
             C1 = np.linalg.matrix_power(C1, self.k)
             C2 = np.linalg.matrix_power(C2, self.k)
 
