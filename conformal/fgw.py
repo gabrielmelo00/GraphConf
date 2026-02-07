@@ -24,7 +24,7 @@ class FGW:
             cost: the cost matrix to use
             alpha: trade-off parameter
             k: cost matrix exponent
-            lmbda: use exp(lmbda * C) instead of C as cost matrix
+            lmbda: use exp(- lmbda * C) instead of C as cost matrix
             diffusion: whether to diffuse node features with the cost matrix
             loss: solver loss function
         """
@@ -50,8 +50,8 @@ class FGW:
         C2 = self.cost_matrix(g2)
 
         if self.lmbda is not None:
-            C1 = scipy.linalg.expn(self.lmbda * C1)
-            C2 = scipy.linalg.expn(self.lmbda * C2)
+            C1 = scipy.linalg.expn(-self.lmbda * C1)
+            C2 = scipy.linalg.expn(-self.lmbda * C2)
 
         elif self.k > 1:
             C1 = np.linalg.matrix_power(C1, self.k)
@@ -65,13 +65,28 @@ class FGW:
             f1 = C1 @ f1
             f2 = C2 @ f2
 
+            # Normalize features
+            f1 /= np.abs(f1).max()
+            f2 /= np.abs(f2).max()
+
         # Feature distance matrix
         M = ot.dist(f1, f2, metric="euclidean")
+
+        # Normalize matrices to avoid numerical errors
+        # (reduces distance a lot between identical graphs!)
+        M /= np.abs(M).max()
+        C1 /= np.abs(C1).max()
+        C2 /= np.abs(C2).max()
+
+        p = np.ones(len(f1)) / len(f1)
+        q = np.ones(len(f2)) / len(f2)
 
         return ot.gromov.fused_gromov_wasserstein2(
             M,
             C1,
             C2,
+            p,
+            q,
             loss_fun=self.loss,
             alpha=self.alpha,
         )
