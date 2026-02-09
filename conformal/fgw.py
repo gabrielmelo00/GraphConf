@@ -7,6 +7,10 @@ import scipy
 from conformal.graph import Graph
 
 
+def normalize(M: np.ndarray) -> np.ndarray:
+    return M / (np.abs(M).max() + 1e-8)
+
+
 class FGW:
     """Fused Gromov-Wasserstein distance between two graphs."""
 
@@ -66,20 +70,28 @@ class FGW:
             f2 = C2 @ f2
 
             # Normalize features
-            f1 /= np.abs(f1).max()
-            f2 /= np.abs(f2).max()
+            f1 = normalize(f1)
+            f2 = normalize(f2)
 
         # Feature distance matrix
         M = ot.dist(f1, f2, metric="euclidean")
 
         # Normalize matrices to avoid numerical errors
         # (reduces distance a lot between identical graphs!)
-        M /= np.abs(M).max()
-        C1 /= np.abs(C1).max()
-        C2 /= np.abs(C2).max()
+        M = normalize(M)
+        C1 = normalize(C1)
+        C2 = normalize(C2)
 
         p = np.ones(len(f1)) / len(f1)
         q = np.ones(len(f2)) / len(f2)
+
+        if len(p) == len(q):
+            # NOTE: this is enough for smiles molecules, as the correct prediction
+            # has the same smiles str as the ground truth, and the same str produces
+            # the exact same graph (no permutation)
+            G0 = np.eye(len(p)) / len(p)
+        else:
+            G0 = None
 
         return ot.gromov.fused_gromov_wasserstein2(
             M,
@@ -87,6 +99,7 @@ class FGW:
             C2,
             p,
             q,
+            G0=G0,
             loss_fun=self.loss,
             alpha=self.alpha,
         )

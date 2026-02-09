@@ -2,6 +2,9 @@ import pickle
 from typing import Iterable, Self
 
 import numpy as np
+import torch
+from torch import nn
+from torch.utils.data import TensorDataset
 from tqdm import tqdm
 
 from conformal.fgw import FGW
@@ -54,6 +57,9 @@ class Metrics:
     def empty_rate(self) -> float:
         return (self.conformal_sizes == 0).mean()
 
+    def __len__(self):
+        return len(self.correct_coverage)
+
 
 class ConformalPredictor:
     """Standard conformal prediction predictor."""
@@ -68,19 +74,18 @@ class ConformalPredictor:
         self.target = target
         self.threshold: float | None = None
 
-    def fit(self, X: Iterable[Graph], y: Iterable[Graph], n: int | None = None):
+    def fit(self, data: Iterable[tuple[Graph, Graph]], n: int | None = None):
         """Fit the conformal predictor on a calibration set.
         This basically computes a nonconformity threshold
 
         Args:
-            X: iterable of predicted graphs
-            y: iterable of ground truth graphs
+            data: iterable of (predicted graph, ground truth graph) pairs
             n: number of samples for tqdm progress display despite streaming
         """
 
         distances = []
 
-        for g1, g2 in tqdm(zip(X, y), "Fitting conformal predictor", total=n):
+        for g1, g2 in tqdm(data, "Fitting conformal predictor", total=n):
             distances.append(self.fgw(g1, g2))
 
         n = len(distances)
@@ -89,17 +94,13 @@ class ConformalPredictor:
 
     def predict(
         self,
-        predictions: Iterable[Graph],
-        ground_truths: Iterable[Graph],
-        candidates: Iterable[Iterable[Graph]],
+        data: Iterable[tuple[Graph, Graph, Iterable[Graph]]],
         n: int | None = None,
     ) -> Metrics:
         """Predict conformal sets and compute metrics on a test set.
 
         Args:
-            predictions: predicted graphs
-            ground_truths: ground truth graphs
-            candidates: candidate graphs for each ground truth
+            data: iterable of (predicted graph, ground truth graph, candidate graphs) tuples
             n: number of samples for tqdm progress display despite streaming
         """
 
@@ -109,7 +110,7 @@ class ConformalPredictor:
         conformal_sizes: list[int] = []
 
         for pred, truth, cands in tqdm(
-            zip(predictions, ground_truths, candidates),
+            data,
             "Predicting with conformal predictor",
             total=n,
         ):

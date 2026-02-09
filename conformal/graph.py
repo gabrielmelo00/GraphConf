@@ -35,6 +35,45 @@ class Graph:
                 if verbose:
                     print(f"Error processing SMILES: {e}")
 
+    @staticmethod
+    def stream_from_smiles_pair(
+        preds: Iterable[str], truths: Iterable[str], verbose=False
+    ) -> Iterable[tuple[Self, Self]]:
+        """Stream pairs of (predicted graph, ground truth graph) from an iterable of SMILES string pairs.
+        This is necessary because smiles to graph can fail if the molecule is disconnected,
+        and we don't want to introduce a shift in the (pred, truth) pairs by dropping only one of them."""
+
+        for p, t in zip(preds, truths):
+            try:
+                yield Graph.from_smiles(p), Graph.from_smiles(t)
+            except Exception as e:
+                if verbose:
+                    print(f"Error processing SMILES pair: {e}")
+
+    @staticmethod
+    def stream_from_smiles_pair_and_candidates(
+        preds: Iterable[str],
+        truths: Iterable[str],
+        candidates: Iterable[Iterable[str]],
+        verbose=False,
+    ) -> Iterable[tuple[Self, Self, Iterable[Self]]]:
+        """Stream triples of (predicted graph, ground truth graph, candidate graphs)
+        from an iterable of SMILES string pairs and candidate lists.
+        Same reason as `stream_from_smiles_pair`.
+        Also, candidates can fail, that's not an issue, the resulting set is always non-empty.
+        """
+
+        for p, t, cands in zip(preds, truths, candidates):
+            try:
+                yield (
+                    Graph.from_smiles(p),
+                    Graph.from_smiles(t),
+                    Graph.stream_from_smiles(cands, verbose=verbose),
+                )
+            except Exception as e:
+                if verbose:
+                    print(f"Error processing SMILES pair and candidates: {e}")
+
     @classmethod
     def from_smiles(cls, smiles: str, use_onehot=True) -> Self:
         """Convert a SMILES string to a Graph object.
