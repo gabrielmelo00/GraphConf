@@ -54,8 +54,8 @@ class FGW:
         C2 = self.cost_matrix(g2)
 
         if self.lmbda is not None:
-            C1 = scipy.linalg.expn(-self.lmbda * C1)
-            C2 = scipy.linalg.expn(-self.lmbda * C2)
+            C1 = scipy.linalg.expm(-self.lmbda * C1)
+            C2 = scipy.linalg.expm(-self.lmbda * C2)
 
         elif self.k > 1:
             C1 = np.linalg.matrix_power(C1, self.k)
