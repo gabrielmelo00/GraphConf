@@ -21,6 +21,7 @@ class FGW:
         k=1,
         lmbda: float | None = None,
         diffusion=False,
+        prior: Literal["identity", "sinkhorn"] = "identity",
         loss: Literal["square_loss", "kl_loss"] = "square_loss",
     ):
         """
@@ -30,6 +31,7 @@ class FGW:
             k: cost matrix exponent
             lmbda: use exp(- lmbda * C) instead of C as cost matrix
             diffusion: whether to diffuse node features with the cost matrix
+            prior: FGW transport prior of the G0 matrix
             loss: solver loss function
         """
         self.cost = cost
@@ -37,6 +39,7 @@ class FGW:
         self.k = k
         self.lmbda = lmbda
         self.diffusion = diffusion
+        self.prior = prior
         self.loss = loss
 
     def cost_matrix(self, g: Graph) -> np.ndarray:
@@ -85,21 +88,37 @@ class FGW:
         p = np.ones(len(f1)) / len(f1)
         q = np.ones(len(f2)) / len(f2)
 
-        if len(p) == len(q):
-            # NOTE: this is enough for smiles molecules, as the correct prediction
-            # has the same smiles str as the ground truth, and the same str produces
-            # the exact same graph (no permutation)
-            G0 = np.eye(len(p)) / len(p)
-        else:
-            G0 = None
+        # Initialization prior
+        G0: np.ndarray | None = None
 
-        return ot.gromov.fused_gromov_wasserstein2(
-            M,
-            C1,
-            C2,
-            p,
-            q,
-            G0=G0,
-            loss_fun=self.loss,
-            alpha=self.alpha,
-        )
+        match self.prior:
+            case "sinkhorn":
+                G0 = ot.bregman.sinkhorn_log(p, q, M, reg=1e-2)
+            case "identity":
+                if len(p) == len(q):
+                    G0 = np.eye(len(p)) / len(p)
+
+        # Because the prior might not conform to the solver marginal constraints,
+        # we fallback to the default p^T.q initialization on exception
+        try:
+            return ot.gromov.fused_gromov_wasserstein2(
+                M,
+                C1,
+                C2,
+                p,
+                q,
+                G0=G0,
+                loss_fun=self.loss,
+                alpha=self.alpha,
+            )
+        except ValueError:
+            return ot.gromov.fused_gromov_wasserstein2(
+                M,
+                C1,
+                C2,
+                p,
+                q,
+                # No G0, use the default ones / n one
+                loss_fun=self.loss,
+                alpha=self.alpha,
+            )

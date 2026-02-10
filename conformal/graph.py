@@ -74,6 +74,52 @@ class Graph:
                 if verbose:
                     print(f"Error processing SMILES pair and candidates: {e}")
 
+    @staticmethod
+    def stream_from_smiles_pair_and_candidates_size(
+        preds: Iterable[str],
+        truths: Iterable[str],
+        candidates: Iterable[int],
+        verbose=False,
+    ) -> Iterable[tuple[Self, Self, int]]:
+        """Stream triples of (predicted graph, ground truth graph, candidate graphs)
+        from an iterable of SMILES string pairs and candidate lists.
+        Same reason as `stream_from_smiles_pair`.
+        Also, candidates can fail, that's not an issue, the resulting set is always non-empty.
+        """
+
+        for p, t, size in zip(preds, truths, candidates):
+            try:
+                yield (Graph.from_smiles(p), Graph.from_smiles(t), size)
+            except Exception as e:
+                if verbose:
+                    print(f"Error processing SMILES pair and candidates: {e}")
+
+    @staticmethod
+    def stream_from_smiles_pair_and_candidates_with_size(
+        preds: Iterable[str],
+        truths: Iterable[str],
+        candidates: Iterable[Iterable[str]],
+        candidate_sizes: Iterable[int],
+        verbose=False,
+    ) -> Iterable[tuple[Self, Self, Iterable[Self], int]]:
+        """Stream triples of (predicted graph, ground truth graph, candidate graphs)
+        from an iterable of SMILES string pairs and candidate lists.
+        Same reason as `stream_from_smiles_pair`.
+        Also, candidates can fail, that's not an issue, the resulting set is always non-empty.
+        """
+
+        for p, t, cands, size in zip(preds, truths, candidates, candidate_sizes):
+            try:
+                yield (
+                    Graph.from_smiles(p),
+                    Graph.from_smiles(t),
+                    Graph.stream_from_smiles(cands, verbose=verbose),
+                    size,
+                )
+            except Exception as e:
+                if verbose:
+                    print(f"Error processing SMILES pair and candidates: {e}")
+
     @classmethod
     def from_smiles(cls, smiles: str, use_onehot=True) -> Self:
         """Convert a SMILES string to a Graph object.

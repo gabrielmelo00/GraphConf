@@ -54,6 +54,30 @@ class SmilesPredictor(nn.Module):
         self.device = device
 
     @torch.no_grad
+    def spectrum_embedding(self, spectrum: MassSpectrum) -> Tensor:
+        """Compute the embedding for a given mass spectrum.
+
+        Returns:
+            (1, 768) embedding in ChemBERTa space
+        """
+
+        mz = spectrum["mz"].to(self.device)
+        intensity = spectrum["intensity"].to(self.device)
+
+        spec_binned = bin_peaks(mz, intensity, num_bins=2048, max_mz=2000.0).unsqueeze(
+            0
+        )
+        peaks = torch.stack([mz, intensity], dim=-1).unsqueeze(0)
+
+        # Add dummy SMILES to meta (required by model forward, but not used for query)
+        meta = {"peaks": peaks, "smi_key": ["C"]}
+
+        # Forward pass (exactly like specbridge/eval/candidates.py line 449)
+        z_s, z_m, z_hat, mu, lv = self.model(spec_binned, meta, None, inference=True)
+
+        return mu
+
+    @torch.no_grad
     def forward(
         self, spectrum: MassSpectrum, candidates: list[str], *, top_k=1
     ) -> list[tuple[str, float]]:
