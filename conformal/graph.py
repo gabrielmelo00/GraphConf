@@ -6,6 +6,9 @@ import numpy as np
 from rdkit import Chem
 from rdkit.Chem import rdmolops
 from scipy.sparse.csgraph import shortest_path
+from torch_geometric.data import Data
+
+from conformal.any2graph import A2GGraph, sparse_to_graph
 
 
 @dataclass(frozen=True)
@@ -24,6 +27,22 @@ class Graph:
         """Shortest paths between node pairs."""
         return shortest_path(self.A, directed=False, unweighted=True)
 
+    @classmethod
+    def from_a2g(cls, graph: A2GGraph) -> Self:
+        """Convert an Any2Graph graph to a Graph object."""
+        return cls(A=graph["A"].numpy(), F=graph["F"].numpy())
+
+    @staticmethod
+    def stream_from_sparse_pairs(
+        pairs: Iterable[tuple[Data, Data]],
+    ) -> Iterable[tuple[Self, Self]]:
+        """Stream Graph objects from sparse Any2Graph pairs of (pred, truth)"""
+        for pred, truth in pairs:
+            yield (
+                Graph.from_a2g(sparse_to_graph(pred)),
+                Graph.from_a2g(sparse_to_graph(truth)),
+            )
+
     @staticmethod
     def stream_from_smiles(smiles: Iterable[str], verbose=False) -> Iterable[Self]:
         """Stream Graph objects from an iterable of SMILES strings.
@@ -36,7 +55,7 @@ class Graph:
                     print(f"Error processing SMILES: {e}")
 
     @staticmethod
-    def stream_from_smiles_pair(
+    def stream_from_smiles_pairs(
         preds: Iterable[str], truths: Iterable[str], verbose=False
     ) -> Iterable[tuple[Self, Self]]:
         """Stream pairs of (predicted graph, ground truth graph) from an iterable of SMILES string pairs.
@@ -51,7 +70,7 @@ class Graph:
                     print(f"Error processing SMILES pair: {e}")
 
     @staticmethod
-    def stream_from_smiles_pair_and_candidates(
+    def stream_from_smiles_pairs_and_candidates(
         preds: Iterable[str],
         truths: Iterable[str],
         candidates: Iterable[Iterable[str]],
@@ -75,7 +94,7 @@ class Graph:
                     print(f"Error processing SMILES pair and candidates: {e}")
 
     @staticmethod
-    def stream_from_smiles_pair_and_candidates_size(
+    def stream_from_smiles_pairs_and_candidates_size(
         preds: Iterable[str],
         truths: Iterable[str],
         candidates: Iterable[int],
@@ -95,7 +114,7 @@ class Graph:
                     print(f"Error processing SMILES pair and candidates: {e}")
 
     @staticmethod
-    def stream_from_smiles_pair_and_candidates_with_size(
+    def stream_from_smiles_pairs_and_candidates_with_size(
         preds: Iterable[str],
         truths: Iterable[str],
         candidates: Iterable[Iterable[str]],
@@ -156,6 +175,6 @@ class Graph:
                 onehot[atom_to_idx.get(atomic_num, -1)] = 1.0
                 F.append(onehot)
             else:
-                F.append([atomic_num])
+                F.append([atomic_num])  # type: ignore
 
         return Graph(A=A, F=np.array(F, dtype=np.float32))

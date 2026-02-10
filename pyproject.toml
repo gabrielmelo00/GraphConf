@@ -50,3 +50,9 @@ msml = { git = "https://github.com/roman-bushuiev/msml_legacy_architectures.git"
 
 [tool.ruff]
 extend-exclude = ["Models"]
+
+[tool.pyrefly]
+project-includes = [
+    "**/*.py*",
+    "**/*.ipynb",
+]
