@@ -3,6 +3,8 @@ from typing import Literal
 import numpy as np
 import ot
 import scipy
+import scipy.linalg
+import torch
 
 from conformal.graph import Graph
 
@@ -41,6 +43,8 @@ class FGW:
         self.diffusion = diffusion
         self.prior = prior
         self.loss = loss
+        # GPU acceleration for expm (takes a lot of CPU)
+        self.gpu: str | None = "cuda" if torch.cuda.is_available() else None
 
     def cost_matrix(self, g: Graph) -> np.ndarray:
         match self.cost:
@@ -51,14 +55,21 @@ class FGW:
             case "shortest_path":
                 return g.shortest_paths
 
+    def expm(self, A: np.ndarray) -> np.ndarray:
+        """Do matrix exponential on GPU if available, otherwise on CPU."""
+        if self.gpu is not None:
+            return torch.matrix_exp(torch.from_numpy(A).to(self.gpu)).cpu().numpy()
+        else:
+            return scipy.linalg.expm(A)
+
     def __call__(self, g1: Graph, g2: Graph) -> float:
 
         C1 = self.cost_matrix(g1)
         C2 = self.cost_matrix(g2)
 
         if self.lmbda is not None:
-            C1 = scipy.linalg.expm(-self.lmbda * C1)
-            C2 = scipy.linalg.expm(-self.lmbda * C2)
+            C1 = self.expm(-self.lmbda * C1)
+            C2 = self.expm(-self.lmbda * C2)
 
         elif self.k > 1:
             C1 = np.linalg.matrix_power(C1, self.k)
@@ -77,7 +88,7 @@ class FGW:
             f2 = normalize(f2)
 
         # Feature distance matrix
-        M = ot.dist(f1, f2, metric="euclidean")
+        M: np.ndarray = ot.dist(f1, f2, metric="euclidean")  # type: ignore
 
         # Normalize matrices to avoid numerical errors
         # (reduces distance a lot between identical graphs!)
@@ -93,7 +104,7 @@ class FGW:
 
         match self.prior:
             case "sinkhorn":
-                G0 = ot.bregman.sinkhorn_log(p, q, M, reg=1e-2)
+                G0 = ot.bregman.sinkhorn(p, q, M, reg=1e-2)  # type: ignore
             case "identity":
                 if len(p) == len(q):
                     G0 = np.eye(len(p)) / len(p)
@@ -101,7 +112,7 @@ class FGW:
         # Because the prior might not conform to the solver marginal constraints,
         # we fallback to the default p^T.q initialization on exception
         try:
-            return ot.gromov.fused_gromov_wasserstein2(
+            return ot.gromov.fused_gromov_wasserstein2(  # type: ignore
                 M,
                 C1,
                 C2,
@@ -112,7 +123,7 @@ class FGW:
                 alpha=self.alpha,
             )
         except ValueError:
-            return ot.gromov.fused_gromov_wasserstein2(
+            return ot.gromov.fused_gromov_wasserstein2(  # type: ignore
                 M,
                 C1,
                 C2,
