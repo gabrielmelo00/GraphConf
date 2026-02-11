@@ -23,7 +23,7 @@ class FGW:
         k=1,
         lmbda: float | None = None,
         diffusion=False,
-        prior: Literal["identity", "sinkhorn"] = "identity",
+        prior: Literal["identity", "sinkhorn", "uniform"] = "identity",
         loss: Literal["square_loss", "kl_loss"] = "square_loss",
     ):
         """
@@ -104,10 +104,12 @@ class FGW:
 
         match self.prior:
             case "sinkhorn":
-                G0 = ot.bregman.sinkhorn(p, q, M, reg=1e-2)  # type: ignore
+                G0 = ot.bregman.sinkhorn_log(p, q, M, reg=1e-2)  # type: ignore
             case "identity":
                 if len(p) == len(q):
                     G0 = np.eye(len(p)) / len(p)
+            case "uniform":
+                G0 = None  # fused_gromov_wassertsein2 does it automatically
 
         # Because the prior might not conform to the solver marginal constraints,
         # we fallback to the default p^T.q initialization on exception
@@ -122,7 +124,7 @@ class FGW:
                 loss_fun=self.loss,
                 alpha=self.alpha,
             )
-        except ValueError:
+        except AssertionError:
             return ot.gromov.fused_gromov_wasserstein2(  # type: ignore
                 M,
                 C1,

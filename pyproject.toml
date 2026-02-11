@@ -23,6 +23,7 @@ dependencies = [
   "pot>=0.9.6.post1",
   "pygmtools>=0.5.5",
   "pyopenms>=3.5.0",
+  "quantile-forest>=1.4.1",
   "rdkit>=2025.9.4",
   "scipy>=1.17.0",
   "seaborn>=0.13.2",

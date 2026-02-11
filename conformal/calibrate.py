@@ -7,56 +7,7 @@ from tqdm import tqdm
 
 from conformal.fgw import FGW
 from conformal.graph import Graph
-
-
-class Metrics:
-    def __init__(
-        self,
-        correct_coverage: list[bool],
-        candidate_sizes: list[int],
-        conformal_sizes: list[int],
-    ):
-        self.correct_coverage = np.array(correct_coverage)
-        self.candidate_sizes = np.array(candidate_sizes)
-        self.conformal_sizes = np.array(conformal_sizes)
-
-    def save(self, path: str):
-        """Save to a pickled file"""
-        with open(path, "wb") as f:
-            pickle.dump(self, f)
-
-    @classmethod
-    def load(cls, path: str) -> Self:
-        """Load from a pickled file"""
-        with open(path, "rb") as f:
-            return pickle.load(f)
-
-    @property
-    def coverage(self) -> float:
-        return self.correct_coverage.mean()
-
-    @property
-    def mean_set_size(self) -> float:
-        return self.conformal_sizes.mean()
-
-    @property
-    def median_set_size(self) -> float:
-        return np.median(self.conformal_sizes)
-
-    @property
-    def mean_reduction(self) -> float:
-        return 1 - (self.conformal_sizes / self.candidate_sizes).mean()
-
-    @property
-    def median_reduction(self) -> float:
-        return 1 - np.median(self.conformal_sizes / self.candidate_sizes)
-
-    @property
-    def empty_rate(self) -> float:
-        return (self.conformal_sizes == 0).mean()
-
-    def __len__(self):
-        return len(self.correct_coverage)
+from conformal.metrics import Metrics
 
 
 class ConformalPredictor:

@@ -964,6 +964,7 @@ dependencies = [
     { name = "pot" },
     { name = "pygmtools" },
     { name = "pyopenms" },
+    { name = "quantile-forest" },
     { name = "rdkit" },
     { name = "scipy" },
     { name = "seaborn" },
@@ -1007,6 +1008,7 @@ requires-dist = [
     { name = "pot", specifier = ">=0.9.6.post1" },
     { name = "pygmtools", specifier = ">=0.5.5" },
     { name = "pyopenms", specifier = ">=3.5.0" },
+    { name = "quantile-forest", specifier = ">=1.4.1" },
     { name = "rdkit", specifier = ">=2025.9.4" },
     { name = "scipy", specifier = ">=1.17.0" },
     { name = "seaborn", specifier = ">=0.13.2" },
@@ -3401,6 +3403,34 @@ wheels = [
 ]
 
 [[package]]
+name = "quantile-forest"
+version = "1.4.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/62/6e/3f1493d4abcce71fdc82ed575475d3e02da7b03375129e84be2622e1532f/quantile_forest-1.4.1.tar.gz", hash = "sha256:713a23c69562b7551ba4a05c22ce9d0e90db6a73d043e760b29c331cb19dc552", size = 486249, upload-time = "2025-09-10T12:48:04.578Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/75/cc/dc1d8d7a3bf1bf8eaff4d810f56970237458482f0a8e892a4d20a27d2386/quantile_forest-1.4.1-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:f4d1866c694defc077ee01190d1c69c9ef4092b31c0f86e5ae7ae3098ef7b9be", size = 954993, upload-time = "2025-09-10T12:47:38.784Z" },
+    { url = "https://files.pythonhosted.org/packages/d4/eb/b9931f40427665a8bbfbbc00dfe26ecb0d8f9df08be8df6c5f20e4ae43c3/quantile_forest-1.4.1-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:da3e40acf24b60aeb1bf24f7648aeb40f984d6b9a722513e8f9bb13d7a75e1f9", size = 717871, upload-time = "2025-09-10T12:47:39.957Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/9a/47e0d2f81115ea4112f41239a669b7440bf71ad50dce92dad86be14aad86/quantile_forest-1.4.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:591e12ae0356206668e2ae8f2808749600da7c587ce7819b39b97d0a7c4053d2", size = 709737, upload-time = "2025-09-10T12:47:41.351Z" },
+    { url = "https://files.pythonhosted.org/packages/02/2b/dfca97f4b6a8c63cdc839f119719a0f68455c3b1a013711a72f63b3dd90d/quantile_forest-1.4.1-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:443341c9047160f36464d72871da7babae04cb8092b9fd19eca86682277ee810", size = 2436079, upload-time = "2025-09-10T12:47:42.936Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/f0/9e375572814f44bb93caf942c0de36c483e22a0488241042536c0dc39fb6/quantile_forest-1.4.1-cp311-cp311-win_amd64.whl", hash = "sha256:69d39db8c434fa2aaa48716eb05774491b22d1087f2f24bfcd853b52869d01bc", size = 685513, upload-time = "2025-09-10T12:47:44.045Z" },
+    { url = "https://files.pythonhosted.org/packages/93/53/63c400659404b45221405f7dbdb42fb0cea4b9cae0877a567d56d760a995/quantile_forest-1.4.1-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:f7d4eae276928f07c13e4784842768569e92c50e93f66c1feadf85c4967b3be4", size = 959038, upload-time = "2025-09-10T12:47:45.193Z" },
+    { url = "https://files.pythonhosted.org/packages/e3/d7/694d428f94b5aec95bd9bb3805b119c1845bb63e215deeeab64e60812037/quantile_forest-1.4.1-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:c0526c117be0df98e79e1ce378968f1e1faa9ca23e08da449baa0651a52a81d1", size = 720471, upload-time = "2025-09-10T12:47:46.873Z" },
+    { url = "https://files.pythonhosted.org/packages/8d/fb/747bf715bfba7570f88c7c601ef3f3350eceb4ce4bf72a1d36fb9845fdd2/quantile_forest-1.4.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:b67fc17c82ea85f575617f7a093f3ad8ef0dc5a159f886a9948224b98483ad8c", size = 710769, upload-time = "2025-09-10T12:47:47.88Z" },
+    { url = "https://files.pythonhosted.org/packages/99/05/86bbce5503c007cfeeb74068edf608c4216e570ad13c9500513f5473740c/quantile_forest-1.4.1-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:d402c4af3f72d21c3ca3e9dda25a68207d29ae4d34b8126bcf19fc3680ce23e0", size = 2406284, upload-time = "2025-09-10T12:47:49.42Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/93/1ae45144ab80bdd8cf8e7bf983137440b1c3430516a7db340caee9b6d77d/quantile_forest-1.4.1-cp312-cp312-win_amd64.whl", hash = "sha256:b1513b039f7ea5b9467201807b41594d25ecaf088868221e2f1ddea4edeb13b8", size = 685743, upload-time = "2025-09-10T12:47:50.525Z" },
+    { url = "https://files.pythonhosted.org/packages/33/61/f8ff4e348dc2d265ea97287f921b92bca265229c48be64b94756ecff4078/quantile_forest-1.4.1-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:37c2da2ab54aceacdf5292065147f40a073b13cc3844262f0f3cbd5b8a8d928e", size = 955098, upload-time = "2025-09-10T12:47:52.137Z" },
+    { url = "https://files.pythonhosted.org/packages/4f/95/75f3eea1c7cc3786c1ffdf4685e79c4979a4ae6ccedfed80362c9162f0d4/quantile_forest-1.4.1-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:3f0436ac7622442c2995cf121e0960332e769791f3f3c7ea62363e8480803bb3", size = 718470, upload-time = "2025-09-10T12:47:53.566Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/f1/0f26386bf164ede156099d18e3e4493dd21dc48e329e1be68232e5cf8b52/quantile_forest-1.4.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:a594bd3552507beffa6ca6002143601be5defd5cc7329154f41317110f895f7a", size = 709245, upload-time = "2025-09-10T12:47:54.54Z" },
+    { url = "https://files.pythonhosted.org/packages/4f/cd/6501c8c200f34a87e1e94d7ea4f1a9dc842154fbfaa0fe65f072817fbc41/quantile_forest-1.4.1-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:697c48faf52a04e7e47f97187650d16cecc9c971fe2f83d56854b4a454289f60", size = 2403543, upload-time = "2025-09-10T12:47:55.956Z" },
+    { url = "https://files.pythonhosted.org/packages/f2/be/f77c6705e974b23353c43da1cd93e11fe0afc7e859c2d14f748d25cc0376/quantile_forest-1.4.1-cp313-cp313-win_amd64.whl", hash = "sha256:fe33f6a8b63b3617568cc1254e1802a70ce3ac23897790f3be10f8db5257fe83", size = 685417, upload-time = "2025-09-10T12:47:57.346Z" },
+]
+
+[[package]]
 name = "rdkit"
 version = "2025.9.4"
 source = { registry = "https://pypi.org/simple" }
@@ -4135,9 +4165,9 @@ dependencies = [
     { name = "typing-extensions" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/25/d8/9e6b8e7df981a1e3ea3907fd5a74673e791da483e8c307f0b6ff012626d0/torch-2.10.0-1-cp311-none-macosx_11_0_arm64.whl", hash = "sha256:f699f31a236a677b3118bc0a3ef3d89c0c29b5ec0b20f4c4bf0b110378487464", size = 79423460, upload-time = "2026-02-06T17:37:39.657Z" },
-    { url = "https://files.pythonhosted.org/packages/c9/2f/0b295dd8d199ef71e6f176f576473d645d41357b7b8aa978cc6b042575df/torch-2.10.0-1-cp312-none-macosx_11_0_arm64.whl", hash = "sha256:6abb224c2b6e9e27b592a1c0015c33a504b00a0e0938f1499f7f514e9b7bfb5c", size = 79498197, upload-time = "2026-02-06T17:37:27.627Z" },
-    { url = "https://files.pythonhosted.org/packages/a4/1b/af5fccb50c341bd69dc016769503cb0857c1423fbe9343410dfeb65240f2/torch-2.10.0-1-cp313-none-macosx_11_0_arm64.whl", hash = "sha256:7350f6652dfd761f11f9ecb590bfe95b573e2961f7a242eccb3c8e78348d26fe", size = 79498248, upload-time = "2026-02-06T17:37:31.982Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/8b/4b61d6e13f7108f36910df9ab4b58fd389cc2520d54d81b88660804aad99/torch-2.10.0-2-cp311-none-macosx_11_0_arm64.whl", hash = "sha256:418997cb02d0a0f1497cf6a09f63166f9f5df9f3e16c8a716ab76a72127c714f", size = 79423467, upload-time = "2026-02-10T21:44:48.711Z" },
+    { url = "https://files.pythonhosted.org/packages/d3/54/a2ba279afcca44bbd320d4e73675b282fcee3d81400ea1b53934efca6462/torch-2.10.0-2-cp312-none-macosx_11_0_arm64.whl", hash = "sha256:13ec4add8c3faaed8d13e0574f5cd4a323c11655546f91fbe6afa77b57423574", size = 79498202, upload-time = "2026-02-10T21:44:52.603Z" },
+    { url = "https://files.pythonhosted.org/packages/ec/23/2c9fe0c9c27f7f6cb865abcea8a4568f29f00acaeadfc6a37f6801f84cb4/torch-2.10.0-2-cp313-none-macosx_11_0_arm64.whl", hash = "sha256:e521c9f030a3774ed770a9c011751fb47c4d12029a3d6522116e48431f2ff89e", size = 79498254, upload-time = "2026-02-10T21:44:44.095Z" },
     { url = "https://files.pythonhosted.org/packages/78/89/f5554b13ebd71e05c0b002f95148033e730d3f7067f67423026cc9c69410/torch-2.10.0-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:3282d9febd1e4e476630a099692b44fdc214ee9bf8ee5377732d9d9dfe5712e4", size = 145992610, upload-time = "2026-01-21T16:25:26.327Z" },
     { url = "https://files.pythonhosted.org/packages/ae/30/a3a2120621bf9c17779b169fc17e3dc29b230c29d0f8222f499f5e159aa8/torch-2.10.0-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:a2f9edd8dbc99f62bc4dfb78af7bf89499bca3d753423ac1b4e06592e467b763", size = 915607863, upload-time = "2026-01-21T16:25:06.696Z" },
     { url = "https://files.pythonhosted.org/packages/6f/3d/c87b33c5f260a2a8ad68da7147e105f05868c281c63d65ed85aa4da98c66/torch-2.10.0-cp311-cp311-win_amd64.whl", hash = "sha256:29b7009dba4b7a1c960260fc8ac85022c784250af43af9fb0ebafc9883782ebd", size = 113723116, upload-time = "2026-01-21T16:25:21.916Z" },
