@@ -25,6 +25,7 @@ dependencies = [
   "pyopenms>=3.5.0",
   "quantile-forest>=1.4.1",
   "rdkit>=2025.9.4",
+  "ruamel-yaml>=0.19.1",
   "scipy>=1.17.0",
   "seaborn>=0.13.2",
   "torch>=2.10.0",

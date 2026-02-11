@@ -2,6 +2,8 @@
 
 from typing import TypedDict
 
+import torch
+from Any2Graph.graphs.custom_graphs_classes import BatchedContinuousGraphs
 from Any2Graph.Img2Graph.Coloring.Coloring_Dataset import ColoringDataset
 from torch import Tensor
 from torch_geometric.data import Data
@@ -63,3 +65,23 @@ def sparse_to_graph(data: Data) -> A2GGraph:
     A = to_dense_adj(data.edge_index, edge_attr=data.edge_weight).squeeze()
     F = data.x
     return {"A": A, "F": F}
+
+
+def sparse_from_batch(batch: BatchedContinuousGraphs) -> list[Data]:
+    """Convert a batch of predicted continuous graphs into a list of sparse torch geometric graphs."""
+
+    graphs: list[Data] = []
+
+    for i in range(len(batch)):
+        A = batch.A[i]
+        F = batch.F[i]
+        h = batch.h[i]
+
+        nodes = torch.where(h > 0.5)[0]
+        F = F[nodes]
+        A = A[nodes][:, nodes]
+
+        graph: A2GGraph = {"A": A, "F": F}
+        graphs.append(graph_to_sparse(graph))
+
+    return graphs
