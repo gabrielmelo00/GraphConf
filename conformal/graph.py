@@ -3,8 +3,6 @@ from functools import cached_property
 from typing import Iterable, Self
 
 import numpy as np
-from rdkit import Chem
-from rdkit.Chem import rdmolops
 from scipy.sparse.csgraph import shortest_path
 from torch_geometric.data import Data
 
@@ -147,6 +145,10 @@ class Graph:
             smiles: the SMILES string to convert
             use_onehot: whether to use one-hot encoding for atom types. Else, atomic number
         """
+
+        # Lazy import to avoid rdkit dependency if not used
+        from rdkit import Chem
+        from rdkit.Chem import rdmolops
 
         molecule = Chem.MolFromSmiles(smiles)
         if molecule is None:

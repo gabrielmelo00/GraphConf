@@ -51,7 +51,7 @@ class SmilesPredictor(nn.Module):
     def __init__(self, model: DreamsToMolCondition, device: str):
         super().__init__()
         self.model = model.to(device)
-        self.device = device
+        self.device = torch.device(device)
 
     @torch.no_grad
     def spectrum_embedding(self, spectrum: MassSpectrum) -> Tensor:
