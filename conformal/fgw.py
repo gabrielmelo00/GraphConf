@@ -24,7 +24,7 @@ class FGW:
         k=1,
         lmbda: float | None = None,
         diffusion=False,
-        prior: Literal["identity", "sinkhorn", "uniform"] = "identity",
+        prior: Literal["identity", "emd", "paul", "uniform"] = "identity",
         loss: Literal["square_loss", "kl_loss"] = "square_loss",
     ):
         """
@@ -104,8 +104,14 @@ class FGW:
         G0: np.ndarray | None = None
 
         match self.prior:
-            case "sinkhorn":
-                G0 = ot.bregman.sinkhorn_log(p, q, M, reg=1e-2)  # type: ignore
+            case "paul":
+                F1 = np.concat((f1, C1 @ f1), axis=1)
+                F2 = np.concat((f2, C2 @ f2), axis=1)
+
+                M: np.ndarray = ot.dist(F1, F2, metric="euclidean")  # type: ignore
+                G0 = ot.emd(p, q, M)  # type: ignore
+            case "emd":
+                G0 = ot.emd(p, q, M)  # type: ignore
             case "identity":
                 if len(p) == len(q):
                     G0 = np.eye(len(p)) / len(p)
