@@ -58,7 +58,7 @@ class CandidateSizeRegressor:
                 self.regressor = QuantileRegressor(quantile=target, alpha=0.0, **kwargs)
             case "random_forest":
                 self.regressor = RandomForestQuantileRegressor(
-                    default_quantiles=[target], **kwargs
+                    default_quantiles=target, **kwargs
                 )
 
     def fit(self, distances: list[float], candidate_sizes: list[int]):

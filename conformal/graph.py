@@ -73,4 +73,4 @@ class Graph:
             else:
                 F.append([atomic_num])  # type: ignore
 
-        return Graph(A=A, F=np.array(F, dtype=np.float32))
+        return cls(A=A, F=np.array(F, dtype=np.float32))
