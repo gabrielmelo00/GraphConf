@@ -75,6 +75,8 @@ class Metrics:
             if self.correct_coverage[i]:
                 correct[bin] += 1
 
+        total[total == 0] = 1  # Avoid division by zero for empty bins
+
         data = {"target": target, "bin_size": bin_size, "bins": list(correct / total)}
 
         json.dump(data, open(path, "w"), indent=4)

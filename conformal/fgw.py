@@ -18,6 +18,7 @@ class FGW:
 
     def __init__(
         self,
+        *,
         cost: Literal["adjacency", "laplacian", "shortest_path"] = "adjacency",
         alpha=0.5,
         k=1,
