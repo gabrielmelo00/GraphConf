@@ -1,0 +1,5 @@
+[project]
+name = "dreams"
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.11"

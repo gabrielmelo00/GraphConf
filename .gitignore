@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
+*.csv
 .venv/
 .env
 outputs/
@@ -19,6 +20,7 @@ analysis_ms/
 *.json
 *.log
 .vscode/ 
+*.pkl
 
 # Ignore all folders named data
 **/runs/
