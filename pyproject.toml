@@ -33,6 +33,7 @@ dependencies = [
   "torchvision>=0.25.0",
   "tqdm>=4.67.3",
   "transformers>=5.1.0",
+  "typst>=0.14.8",
   "umap-learn>=0.5.11",
   "wandb>=0.24.2",
 ]

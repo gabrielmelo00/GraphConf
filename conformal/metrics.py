@@ -97,6 +97,20 @@ class Metrics:
         )
         df.write_csv(path)
 
+    def latex_metrics_row(self):
+        """Print LateX code for a row of the metrics table"""
+
+        strings: list[str] = [
+            f"${100 * self.coverage:.1f}\%$",
+            f"${round(self.mean_set_size)}$",
+            f"${round(self.median_set_size)}$",
+            f"${100 * self.mean_reduction:.1f}\%$",
+            f"${100 * self.median_reduction:.1f}\%$",
+            f"${100 * self.empty_rate:.1f}\%$",
+        ]
+
+        print(" & ".join(strings))
+
     def typst_metrics_row(self, method: str):
         """Print the typst code for a row of the metrics table"""
 
