@@ -22,7 +22,7 @@ class FixedRegressor:
         """Fit the regressor on a calibration set."""
         n = len(distances)
         conformal_quantile = np.ceil((n + 1) * self.target) / n
-        self._threshold = np.quantile(distances, conformal_quantile)
+        self._threshold = np.quantile(distances, conformal_quantile, method="higher")
 
     def threshold(self) -> float:
         """Returns the fixed non-conformity threshold"""
@@ -73,7 +73,7 @@ class CandidateSizeRegressor:
         residuals = np_distances - self.regressor.predict(np_candidate_sizes)
         n = len(residuals)
         conformal_quantile = np.ceil((n + 1) * self.target) / n
-        self._threshold = np.quantile(residuals, conformal_quantile)
+        self._threshold = np.quantile(residuals, conformal_quantile, method="higher")
 
     def threshold(self, candidate_size: int) -> float:
         """Predict the non-conformity threshold for a given candidate set size."""
@@ -182,7 +182,7 @@ class EmbeddingRegressor:
         residuals = np.array(distances) - np.array(preds)
         n = len(residuals)
         conformal_quantile = np.ceil((n + 1) * 0.9) / n
-        self._threshold = np.quantile(residuals, conformal_quantile)
+        self._threshold = np.quantile(residuals, conformal_quantile, method="higher")
 
     def threshold(self, embedding: Tensor) -> float:
         """Predict the non-conformity threshold for a given embedding."""
