@@ -22,6 +22,16 @@ class Graph:
         return D - self.A
 
     @cached_property
+    def L_normalized(self) -> np.ndarray:
+        """Normalized graph Laplacian (all diagonal degrees become 1).
+        https://sh-tsang.medium.com/tutorial-normalized-graph-laplacian-f74593feace7
+        """
+        diag = self.A.sum(axis=1)
+        D = np.diag(diag)
+        D_inv = np.diag(1 / (diag + 1e-8))
+        return D_inv @ (D - self.A)
+
+    @cached_property
     def shortest_paths(self) -> np.ndarray:
         """Shortest paths between node pairs."""
         return shortest_path(self.A, directed=False, unweighted=True)
