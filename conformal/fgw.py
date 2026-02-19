@@ -28,7 +28,7 @@ class FGW:
         lmbda: float | None = None,
         lmbda_n: int | None = None,
         diffusion=False,
-        prior: Literal["identity", "emd", "paul", "uniform"] = "identity",
+        prior: Literal["identity", "FD", "LFD", "LFD-sym", "uniform"] = "identity",
         loss: Literal["square_loss", "kl_loss"] = "square_loss",
     ):
         """
@@ -82,6 +82,23 @@ class FGW:
 
         return M
 
+    def solve_prior(
+        self,
+        f1: np.ndarray,
+        f2: np.ndarray,
+        C1: np.ndarray,
+        C2: np.ndarray,
+        p: np.ndarray,
+        q: np.ndarray,
+    ) -> np.ndarray:
+        """Solve the feature diffusion prior with the given feature and cost matrices."""
+
+        F1 = np.concat((f1, C1 @ f1), axis=1)
+        F2 = np.concat((f2, C2 @ f2), axis=1)
+
+        M: np.ndarray = ot.dist(F1, F2, metric="euclidean")  # type: ignore
+        return ot.emd(p, q, M)  # type: ignore
+
     def __call__(self, g1: Graph, g2: Graph) -> float:
 
         C1 = self.cost_matrix(g1)
@@ -127,14 +144,12 @@ class FGW:
         G0: np.ndarray | None = None
 
         match self.prior:
-            case "paul":
-                F1 = np.concat((f1, C1 @ f1), axis=1)
-                F2 = np.concat((f2, C2 @ f2), axis=1)
-
-                M: np.ndarray = ot.dist(F1, F2, metric="euclidean")  # type: ignore
-                G0 = ot.emd(p, q, M)  # type: ignore
-            case "emd":
-                G0 = ot.emd(p, q, M)  # type: ignore
+            case "FD":
+                G0 = self.solve_prior(f1, f2, g1.A, g2.A, p, q)
+            case "LFD":
+                G0 = self.solve_prior(f1, f2, g1.L, g2.L, p, q)
+            case "LFD-sym":
+                G0 = self.solve_prior(f1, f2, g1.L_normalized, g2.L_normalized, p, q)
             case "identity":
                 if len(p) == len(q):
                     G0 = np.eye(len(p)) / len(p)

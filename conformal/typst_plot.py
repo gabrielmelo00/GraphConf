@@ -133,7 +133,8 @@ SCATTER_TEMPLATE = """
       candidate_size,
       conformal_size,
       color: in_conformal.map(in_c => if in_c { blue } else { red }),
-      alpha: 50%,
+      // Higher alpha for red dots because there are less of them
+      alpha: in_conformal.map(in_c => if in_c { 50% } else { 90% }),
       stroke: none,
     ),
 
