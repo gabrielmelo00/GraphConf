@@ -44,6 +44,14 @@ class Metrics:
         return np.median(self.conformal_sizes[self.correct_coverage])
 
     @property
+    def mean_candidate_size(self) -> float:
+        return self.candidate_sizes[self.correct_coverage].mean()
+
+    @property
+    def median_candidate_size(self) -> float:
+        return np.median(self.candidate_sizes[self.correct_coverage])
+
+    @property
     def mean_reduction(self) -> float:
         correct_conformal = self.conformal_sizes[self.correct_coverage]
         correct_candidate = self.candidate_sizes[self.correct_coverage]
