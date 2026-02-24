@@ -129,6 +129,10 @@ SCATTER_TEMPLATE = """
       auto-exponent-threshold: 10000000,
     ),
 
+    yaxis: (
+      auto-exponent-threshold: 10000000,
+    ),
+
     lq.scatter(
       candidate_size,
       conformal_size,
