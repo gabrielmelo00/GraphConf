@@ -8,6 +8,7 @@ import scipy.linalg
 import torch
 
 from conformal.graph import Graph
+from fngw.fngw import fused_network_gromov_wasserstein2
 
 
 def normalize(M: np.ndarray) -> np.ndarray:
@@ -30,6 +31,7 @@ class FGW:
         diffusion=False,
         prior: Literal["identity", "FD", "LFD", "LFD-sym", "uniform"] = "identity",
         loss: Literal["square_loss", "kl_loss"] = "square_loss",
+        fngw: bool = False,
     ):
         """
         Args:
@@ -41,6 +43,7 @@ class FGW:
             diffusion: whether to diffuse node features with the cost matrix
             prior: FGW transport prior of the G0 matrix
             loss: solver loss function
+            fngw: whether to run the FNGW solver instead (takes into account edge features)
         """
         self.cost = cost
         self.alpha = alpha
@@ -50,6 +53,7 @@ class FGW:
         self.diffusion = diffusion
         self.prior = prior
         self.loss = loss
+        self.fngw = fngw
         # GPU acceleration for expm (takes a lot of CPU)
         self.gpu: str | None = "cuda" if torch.cuda.is_available() else None
 
@@ -155,6 +159,19 @@ class FGW:
                     G0 = np.eye(len(p)) / len(p)
             case "uniform":
                 G0 = None  # fused_gromov_wassertsein2 does it automatically
+
+        if self.fngw:
+            assert g1.C is not None and g2.C is not None, "FNGW requires edge features"
+            return fused_network_gromov_wasserstein2(  # type: ignore
+                M,
+                g1.C,
+                g2.C,
+                C1,
+                C2,
+                p,
+                q,
+                G0=G0,
+            )
 
         # Because the prior might not conform to the solver marginal constraints,
         # we fallback to the default p^T.q initialization on exception

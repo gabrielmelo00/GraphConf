@@ -53,10 +53,7 @@ Any2Graph = { workspace = true, editable = true }
 msml = { git = "https://github.com/roman-bushuiev/msml_legacy_architectures.git", rev = "main" }
 
 [tool.ruff]
-extend-exclude = ["Models"]
+extend-exclude = ["Models", "fngw"]
 
 [tool.pyrefly]
-project-includes = [
-    "**/*.py*",
-    "**/*.ipynb",
-]
+project-includes = ["**/*.py*", "**/*.ipynb"]
