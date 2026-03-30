@@ -1,3 +1,4 @@
+import math
 from typing import Literal
 
 import numpy as np
@@ -7,6 +8,7 @@ import scipy.linalg
 import torch
 
 from conformal.graph import Graph
+from fngw.fngw import fused_network_gromov_wasserstein2
 
 
 def normalize(M: np.ndarray) -> np.ndarray:
@@ -19,13 +21,17 @@ class FGW:
     def __init__(
         self,
         *,
-        cost: Literal["adjacency", "laplacian", "shortest_path"] = "adjacency",
+        cost: Literal[
+            "adjacency", "laplacian", "normalized_laplacian", "shortest_path"
+        ] = "adjacency",
         alpha=0.5,
         k=1,
         lmbda: float | None = None,
+        lmbda_n: int | None = None,
         diffusion=False,
-        prior: Literal["identity", "emd", "paul", "uniform"] = "identity",
+        prior: Literal["identity", "FD", "LFD", "LFD-sym", "uniform"] = "identity",
         loss: Literal["square_loss", "kl_loss"] = "square_loss",
+        fngw: bool = False,
     ):
         """
         Args:
@@ -33,17 +39,21 @@ class FGW:
             alpha: trade-off parameter
             k: cost matrix exponent
             lmbda: use exp(- lmbda * C) instead of C as cost matrix
+            lmbda_n: number of terms to keep in the Taylor expansion of exp(- lmbda * C)
             diffusion: whether to diffuse node features with the cost matrix
             prior: FGW transport prior of the G0 matrix
             loss: solver loss function
+            fngw: whether to run the FNGW solver instead (takes into account edge features)
         """
         self.cost = cost
         self.alpha = alpha
         self.k = k
         self.lmbda = lmbda
+        self.lmbda_n = lmbda_n
         self.diffusion = diffusion
         self.prior = prior
         self.loss = loss
+        self.fngw = fngw
         # GPU acceleration for expm (takes a lot of CPU)
         self.gpu: str | None = "cuda" if torch.cuda.is_available() else None
 
@@ -53,6 +63,8 @@ class FGW:
                 return g.A
             case "laplacian":
                 return g.L
+            case "normalized_laplacian":
+                return g.L_normalized
             case "shortest_path":
                 return g.shortest_paths
 
@@ -63,14 +75,46 @@ class FGW:
         else:
             return scipy.linalg.expm(A)
 
+    def expm_n(self, A: np.ndarray, n: int) -> np.ndarray:
+        """Compute the Taylor expansion of exp(A) up to the term of power n.
+        (range = [0, n])
+        """
+        M = np.zeros_like(A)
+
+        for i in range(n + 1):
+            M += np.linalg.matrix_power(A, i) / math.factorial(i)
+
+        return M
+
+    def solve_prior(
+        self,
+        f1: np.ndarray,
+        f2: np.ndarray,
+        C1: np.ndarray,
+        C2: np.ndarray,
+        p: np.ndarray,
+        q: np.ndarray,
+    ) -> np.ndarray:
+        """Solve the feature diffusion prior with the given feature and cost matrices."""
+
+        F1 = np.concat((f1, C1 @ f1), axis=1)
+        F2 = np.concat((f2, C2 @ f2), axis=1)
+
+        M: np.ndarray = ot.dist(F1, F2, metric="euclidean")  # type: ignore
+        return ot.emd(p, q, M)  # type: ignore
+
     def __call__(self, g1: Graph, g2: Graph) -> float:
 
         C1 = self.cost_matrix(g1)
         C2 = self.cost_matrix(g2)
 
         if self.lmbda is not None:
-            C1 = self.expm(-self.lmbda * C1)
-            C2 = self.expm(-self.lmbda * C2)
+            if self.lmbda_n is not None:
+                C1 = self.expm_n(-self.lmbda * C1, self.lmbda_n)
+                C2 = self.expm_n(-self.lmbda * C2, self.lmbda_n)
+            else:
+                C1 = self.expm(-self.lmbda * C1)
+                C2 = self.expm(-self.lmbda * C2)
 
         elif self.k > 1:
             C1 = np.linalg.matrix_power(C1, self.k)
@@ -84,9 +128,9 @@ class FGW:
             f1 = C1 @ f1
             f2 = C2 @ f2
 
-            # Normalize features
-            f1 = normalize(f1)
-            f2 = normalize(f2)
+        # Normalize features
+        f1 = normalize(f1)
+        f2 = normalize(f2)
 
         # Feature distance matrix
         M: np.ndarray = ot.dist(f1, f2, metric="euclidean")  # type: ignore
@@ -104,19 +148,30 @@ class FGW:
         G0: np.ndarray | None = None
 
         match self.prior:
-            case "paul":
-                F1 = np.concat((f1, C1 @ f1), axis=1)
-                F2 = np.concat((f2, C2 @ f2), axis=1)
-
-                M: np.ndarray = ot.dist(F1, F2, metric="euclidean")  # type: ignore
-                G0 = ot.emd(p, q, M)  # type: ignore
-            case "emd":
-                G0 = ot.emd(p, q, M)  # type: ignore
+            case "FD":
+                G0 = self.solve_prior(f1, f2, g1.A, g2.A, p, q)
+            case "LFD":
+                G0 = self.solve_prior(f1, f2, g1.L, g2.L, p, q)
+            case "LFD-sym":
+                G0 = self.solve_prior(f1, f2, g1.L_normalized, g2.L_normalized, p, q)
             case "identity":
                 if len(p) == len(q):
                     G0 = np.eye(len(p)) / len(p)
             case "uniform":
                 G0 = None  # fused_gromov_wassertsein2 does it automatically
+
+        if self.fngw:
+            assert g1.C is not None and g2.C is not None, "FNGW requires edge features"
+            return fused_network_gromov_wasserstein2(  # type: ignore
+                M,
+                g1.C,
+                g2.C,
+                C1,
+                C2,
+                p,
+                q,
+                G0=G0,
+            )
 
         # Because the prior might not conform to the solver marginal constraints,
         # we fallback to the default p^T.q initialization on exception

@@ -4,6 +4,7 @@ from functools import cached_property
 from typing import Self
 
 import numpy as np
+from rdkit.Chem import Bond, BondType
 from scipy.sparse.csgraph import shortest_path
 
 if typing.TYPE_CHECKING:
@@ -14,12 +15,23 @@ if typing.TYPE_CHECKING:
 class Graph:
     A: np.ndarray  # (n, n) adjacency matrix
     F: np.ndarray  # (n, d) node features
+    C: np.ndarray | None = None  # (n, n, d') edge feature matrix
 
     @cached_property
     def L(self) -> np.ndarray:
         """Graph Laplacian."""
         D = np.diag(self.A.sum(axis=1))
         return D - self.A
+
+    @cached_property
+    def L_normalized(self) -> np.ndarray:
+        """Normalized graph Laplacian (all diagonal degrees become 1).
+        https://sh-tsang.medium.com/tutorial-normalized-graph-laplacian-f74593feace7
+        """
+        diag = self.A.sum(axis=1)
+        D = np.diag(diag)
+        D_inv = np.diag(1 / (diag + 1e-8))
+        return D_inv @ (D - self.A)
 
     @cached_property
     def shortest_paths(self) -> np.ndarray:
@@ -53,11 +65,28 @@ class Graph:
 
         n_atoms = molecule.GetNumAtoms()
         A = np.zeros((n_atoms, n_atoms), dtype=np.float32)
+        C = np.zeros((n_atoms, n_atoms, 4), dtype=np.float32)
 
         for bond in molecule.GetBonds():
             i, j = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
             A[i, j] = 1
             A[j, i] = 1
+
+            bond: Bond
+
+            match bond.GetBondType():
+                case BondType.SINGLE:
+                    C[i, j, 0] = 1
+                    C[j, i, 0] = 1
+                case BondType.DOUBLE:
+                    C[i, j, 1] = 1
+                    C[j, i, 1] = 1
+                case BondType.TRIPLE:
+                    C[i, j, 2] = 1
+                    C[j, i, 2] = 1
+                case BondType.AROMATIC:
+                    C[i, j, 3] = 1
+                    C[j, i, 3] = 1
 
         atom_types = [1, 6, 7, 8, 9, 15, 16, 17, 35, 53]
         atom_to_idx = {a: i for i, a in enumerate(atom_types)}
@@ -73,4 +102,4 @@ class Graph:
             else:
                 F.append([atomic_num])  # type: ignore
 
-        return cls(A=A, F=np.array(F, dtype=np.float32))
+        return cls(A=A, F=np.array(F, dtype=np.float32), C=C)

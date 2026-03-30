@@ -16,7 +16,7 @@ class Metrics:
         candidate_sizes: list[int],
         conformal_sizes: list[int],
     ):
-        self.correct_coverage = np.array(correct_coverage)
+        self.correct_coverage = np.array(correct_coverage, dtype=bool)
         self.candidate_sizes = np.array(candidate_sizes)
         self.conformal_sizes = np.array(conformal_sizes)
 
@@ -37,19 +37,31 @@ class Metrics:
 
     @property
     def mean_set_size(self) -> float:
-        return self.conformal_sizes.mean()
+        return self.conformal_sizes[self.correct_coverage].mean()
 
     @property
     def median_set_size(self) -> float:
-        return np.median(self.conformal_sizes)
+        return np.median(self.conformal_sizes[self.correct_coverage])
+
+    @property
+    def mean_candidate_size(self) -> float:
+        return self.candidate_sizes[self.correct_coverage].mean()
+
+    @property
+    def median_candidate_size(self) -> float:
+        return np.median(self.candidate_sizes[self.correct_coverage])
 
     @property
     def mean_reduction(self) -> float:
-        return 1 - (self.conformal_sizes / self.candidate_sizes).mean()
+        correct_conformal = self.conformal_sizes[self.correct_coverage]
+        correct_candidate = self.candidate_sizes[self.correct_coverage]
+        return 1 - (correct_conformal / correct_candidate).mean()
 
     @property
     def median_reduction(self) -> float:
-        return 1 - np.median(self.conformal_sizes / self.candidate_sizes)
+        correct_conformal = self.conformal_sizes[self.correct_coverage]
+        correct_candidate = self.candidate_sizes[self.correct_coverage]
+        return 1 - np.median(correct_conformal / correct_candidate)
 
     @property
     def empty_rate(self) -> float:
@@ -92,6 +104,20 @@ class Metrics:
             }
         )
         df.write_csv(path)
+
+    def latex_metrics_row(self):
+        """Print LateX code for a row of the metrics table"""
+
+        strings: list[str] = [
+            f"${100 * self.coverage:.1f}\%$",
+            f"${round(self.mean_set_size)}$",
+            f"${round(self.median_set_size)}$",
+            f"${100 * self.mean_reduction:.1f}\%$",
+            f"${100 * self.median_reduction:.1f}\%$",
+            f"${100 * self.empty_rate:.1f}\%$",
+        ]
+
+        print(" & ".join(strings))
 
     def typst_metrics_row(self, method: str):
         """Print the typst code for a row of the metrics table"""
