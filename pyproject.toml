@@ -12,6 +12,7 @@ dependencies = [
   "jupyter>=1.1.1",
   "lightning>=2.6.1",
   "matchms>=0.21.1",
+  "mist",
   "msml",
   "notebook>=7.5.3",
   "numba>=0.63.1",
@@ -44,13 +45,19 @@ dev = ["pyrefly>=0.51.0", "ruff>=0.15.0"]
 models = ["specbridge", "dreams", "Any2Graph"]
 
 [tool.uv.workspace]
-members = ["Models/SpecBridge", "Models/SpecBridge/DreaMS", "Models/Any2Graph"]
+members = [
+    "Models/SpecBridge",
+    "Models/SpecBridge/DreaMS",
+    "Models/Any2Graph",
+    "mist",
+]
 
 [tool.uv.sources]
 specbridge = { workspace = true, editable = true }
 dreams = { workspace = true, editable = true }
 Any2Graph = { workspace = true, editable = true }
 msml = { git = "https://github.com/roman-bushuiev/msml_legacy_architectures.git", rev = "main" }
+mist = { workspace = true }
 
 [tool.ruff]
 extend-exclude = ["Models", "fngw"]

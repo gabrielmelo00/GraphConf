@@ -1,3 +1,6 @@
 [submodule "fngw"]
 	path = fngw
 	url = https://github.com/chunchiehy/fngw.git
+[submodule "mist"]
+	path = mist
+	url = https://github.com/GnRlLeclerc/mist.git
