@@ -1,1 +1,0 @@
-from .toy import ToyDecoder

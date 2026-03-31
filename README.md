@@ -1,38 +1,43 @@
 # GraphConformal
 
-## SpecBridge
-We are using the SpecBridge for Molecule Retrievals tasks, [Model repo](https://github.com/HassounLab/SpecBridge)
+Installation:
 
-### Instalation Guide
- ```bash
-cd Models/SpecBridge/
-uv venv --python 3.11
-source .venv/bin/activate
-
-#Chose the best CUDA to ensure compatibility 11.8 or 
-uv pip install torch==2.2.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-uv pip install -r requirements.txt
-
-cd DreaMS
-uv pip install -e .
-cd ..
-uv pip install -e .
-
-# Check Python version
-python --version  # Should be 3.11.
-
-# Check PyTorch
-python -c "import torch; print(f'PyTorch {torch.__version__}')"
-
-# Check SpecBridge
-python -c "import specbridge; print('SpecBridge installed successfully')"
-
-# Check DreaMS
-python -c "import dreams; print('DreaMS installed successfully')"
+```bash
+uv sync --all-groups
 ```
 
-### Download weights
-Run `download_from_zenodo.sh` and `download_dreams_weights.sh`
+Then source the virtual environment at `.venv`.
+
+## MIST
+
+Minimal setup (warning: may require a lot of RAM, 70GB+):
+
+```bash
+cd mist
+sh data_processing/canopus_train/00_download_canopus_data.sh
+sh data_processing/canopus_train/01_run_subform.sh
+
+sh data_processing/mol_libraries/pubchem/01_download_smiles.sh
+sh data_processing/mol_libraries/pubchem/02_make_formula_subsets.sh
+
+python data_processing/canopus_train/03_retrieval_hdf.py
+
+sh quickstart/model_predictions/00_download_models.sh
+```
+
+The files we need in the end are the following:
+
+- `mist/quickstart/pretrained_models/mist_contrastive_canopus_pretrain.ckpt`
+
+- `mist/data/paired_spectra/canopus_train/labels.tsv`
+- `mist/data/paired_spectra/canopus_train/spec_files/`
+
+- `mist/data/paired_spectra/canopus_train/splits/canopus_hplus_100_0.tsv`
+
+After running `03_retrieval_hdf.py`:
+
+- `mist/data/paired_spectra/canopus_train/retrieval_hdf/intpubchem_with_morgan4096_retrieval_db.h5`
 
 ## Any2Graph
+
 Graph-Valued Regression [Model repo](https://github.com/KrzakalaPaul/Any2Graph)
