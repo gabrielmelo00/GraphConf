@@ -11,9 +11,12 @@ os.chdir("mist")
 """
 
 from copy import deepcopy
+from dataclasses import dataclass
 from typing import Any, Literal, TypedDict
 
+import h5py
 import numpy as np
+import numpy.typing as npt
 import polars as pl
 import torch
 from mist.data.data import Mol, Spectra
@@ -80,8 +83,12 @@ class Batch(TypedDict):
     instruments: Tensor
 
 
-def load_dataset(split: Literal["train", "test", "val"], **kwargs) -> DataLoader[Batch]:
-    """Load the given split of the NPLIB1 dataset"""
+def load_dataset(
+    split: Literal["train", "test", "val"], **kwargs
+) -> tuple[DataLoader[Batch], dict[str, str]]:
+    """Load the given split of the NPLIB1 dataset.
+    Also returns a map from mass spectra identifier to
+    candidate molecules formula"""
     featurizer = featurizers.get_paired_featurizer(**kwargs)
 
     print("Loading labels from", kwargs["labels_file"])
@@ -109,7 +116,11 @@ def load_dataset(split: Literal["train", "test", "val"], **kwargs) -> DataLoader
         shuffle=False,
     )
 
-    return loader
+    spectra_to_formula = {
+        i.get_spec_name(): i.get_spectra_formula() for i in dataset.get_spectra_list()
+    }
+
+    return loader, spectra_to_formula
 
 
 def batch_to(batch: Batch, device: str) -> dict:
@@ -126,7 +137,7 @@ class SpectraEmbeddings(TypedDict):
 
 
 @torch.no_grad()
-def embed_loader(
+def embed_spectra_loader(
     loader: DataLoader[Batch], model: ContrastiveModel, device: str
 ) -> SpectraEmbeddings:
     """Compute spectra embeddings from a spectra dataloader"""
@@ -134,7 +145,7 @@ def embed_loader(
     names = []
     embeds = []
 
-    model.train()
+    model.eval()
     model.to(device)
 
     for batch in tqdm(loader):
@@ -144,3 +155,77 @@ def embed_loader(
         names.extend(batch["names"])
 
     return {"names": names, "embeds": torch.cat(embeds, 0).numpy()}
+
+
+class Isomers(TypedDict):
+    ikeys: npt.NDArray[np.str_]
+    smiles: npt.NDArray[np.str_]
+    fps: npt.NDArray[np.uint8]
+
+
+def isomers(hdf: h5py.File, formula: str) -> Isomers:
+    """Get the isomer molecules for given formula"""
+    indices = np.where(np.array(hdf["formulae"]).astype(str) == formula)[0]
+
+    if not len(indices):
+        return {
+            "ikeys": np.array([]),
+            "smiles": np.array([]),
+            "fps": np.array([]),
+        }
+
+    offset = hdf["formula_offset"][indices[0]]
+    length = hdf["formula_lengths"][indices[0]]
+    sl = slice(offset, offset + length)
+
+    return {
+        "ikeys": hdf["ikeys"][sl],
+        "smiles": hdf["smiles"][sl],
+        "fps": np.unpackbits(hdf["fingerprints"][sl], axis=-1)[
+            ..., -hdf.attrs["num_bits"] :
+        ],
+    }
+
+
+@torch.no_grad()
+def embed_candidates(
+    isomers: Isomers, model: ContrastiveModel, device: str
+) -> np.ndarray:
+    loader = DataLoader(isomers["fps"], batch_size=128, shuffle=False)  # type: ignore
+
+    embeds = []
+
+    for batch in loader:
+        _, out = model.encode_mol({"mols": batch.to(device)})
+        embeds.append(out["contrast"].detach().cpu().numpy())
+
+    return np.vstack(embeds)
+
+
+@dataclass
+class CandidateSimilarities:
+    similarities: np.ndarray
+    truth: int
+
+    def normalized_truth_rank(self) -> float:
+        """Closer to 1 is better"""
+        rank = np.argsort(self.similarities)[self.truth]
+        return rank / len(self.similarities)
+
+    def retained_size(self, threshold: float) -> int:
+        return (self.similarities >= threshold).sum()
+
+    @staticmethod
+    def topk_accuracy(cands: list["CandidateSimilarities"], k: int):
+
+        correct = 0
+
+        for cand in cands:
+            rank = (
+                len(cand.similarities) - np.argsort(cand.similarities)[cand.truth] - 1
+            )
+
+            if rank < k:
+                correct += 1
+
+        return correct / len(cands)
