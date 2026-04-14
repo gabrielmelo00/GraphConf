@@ -2,6 +2,10 @@
 JESTR1 utils
 """
 
+import os
+import pickle
+from pathlib import Path
+
 import dgllife
 from dgl import DGLGraph
 from rdkit import Chem
@@ -39,3 +43,23 @@ def smiles_to_graph(smiles: str, params) -> DGLGraph:
     assert graph is not None
 
     return graph
+
+
+class FSDict:
+    """A "dict" that actually reads from a folder
+    Used to read the extracted contents of "molgraph_dict.pkl" and "data_dict.pkl"
+    which take up an insane amount of RAM when loaded directly.
+    """
+
+    def __init__(self, path: str, ext: str):
+        self.ext = ext
+        self.root = Path(path)
+
+    def keys(self):
+        return sorted(os.listdir(self.root))
+
+    def __len__(self):
+        return len(self.keys())
+
+    def __getitem__(self, name: str):
+        return pickle.load(open(self.root / f"{name}.{self.ext}", "rb"))
