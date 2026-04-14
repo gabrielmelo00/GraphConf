@@ -51,12 +51,12 @@ class FSDict:
     which take up an insane amount of RAM when loaded directly.
     """
 
-    def __init__(self, path: str, ext: str):
+    def __init__(self, path: str, ext: str = "pkl"):
         self.ext = ext
         self.root = Path(path)
 
     def keys(self):
-        return sorted(os.listdir(self.root))
+        return sorted(map(lambda x: os.path.splitext(x)[0], os.listdir(self.root)))
 
     def __len__(self):
         return len(self.keys())
