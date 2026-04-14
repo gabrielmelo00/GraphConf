@@ -7,10 +7,13 @@ import pickle
 from pathlib import Path
 
 import dgllife
+import numpy as np
 from dgl import DGLGraph
 from rdkit import Chem
+from torch import Tensor
 
 from JESTR1.dataset import get_atom_featurizer, get_bond_featurizer
+from JESTR1.utils import get_ms_array_batch
 
 
 def smiles_to_graph(smiles: str, params) -> DGLGraph:
@@ -43,6 +46,18 @@ def smiles_to_graph(smiles: str, params) -> DGLGraph:
     assert graph is not None
 
     return graph
+
+
+def bin_spectras(spectras: list[np.ndarray], params) -> Tensor:
+    """Process a list of spectra and bin them.
+
+    Returns: (batch_size, 1000) binned tensor
+    """
+    mz_b, *_ = get_ms_array_batch(
+        spectras, "log10over3", params["max_mz"], params["resolution"]
+    )
+
+    return mz_b
 
 
 class FSDict:
