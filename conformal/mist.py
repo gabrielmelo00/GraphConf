@@ -11,28 +11,60 @@ os.chdir("mist")
 """
 
 from copy import deepcopy
-from dataclasses import dataclass
-from typing import Any, Literal, TypedDict
+from typing import Any
 
-import h5py
 import numpy as np
-import numpy.typing as npt
-import polars as pl
+import rdkit.Chem.rdFingerprintGenerator
 import torch
-from mist.data.data import Mol, Spectra
+from mist.data.data import Spectra
+from mist.data.featurizers import PeakFormulaTest, SpecFeaturizer
 from mist.models.contrastive_model import ContrastiveModel
-from torch import Tensor
+from mist.models.mist_model import MistNet
+from rdkit import Chem
 from torch.utils.data import DataLoader
-from tqdm import tqdm
 
-from mist.data import datasets, featurizers
+_generator = rdkit.Chem.rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=4096)
 
 
-def load_model() -> tuple[ContrastiveModel, Any]:
+def fingerprint(smile: str) -> np.ndarray:
+    """Fingerprint a molecule to a (4096,) one-hot numpy array"""
+
+    mol = Chem.MolFromSmiles(smile)
+    assert mol is not None, "Bad smiles"
+
+    fp = _generator.GetFingerprint(mol)
+    array = np.zeros((0,), dtype=np.int8)
+    Chem.DataStructs.ConvertToNumpyArray(fp, array)
+
+    return array
+
+
+def load_fingerprint() -> tuple[MistNet, Any]:
+    """Load the spectra fingerprint MIST model and its kwargs"""
+
+    path = "quickstart/pretrained_models/mist_fp_canopus_pretrain.ckpt"
+    checkpoints = torch.load(path, map_location="cpu")
+
+    hyperparams = checkpoints["hyper_parameters"]
+
+    # Load the model
+    model = MistNet(**hyperparams)
+    model.load_state_dict(checkpoints["state_dict"])
+
+    kwargs = hyperparams | {
+        "spec_features": model.spec_features(mode="test"),
+        "mol_features": "none",
+        "allow_none_smiles": True,
+    }
+
+    return model, kwargs
+
+
+def load_contrastive() -> tuple[ContrastiveModel, Any]:
     """Load the contrastive embedding MIST model and its kwargs"""
 
     path = "quickstart/pretrained_models/mist_contrastive_canopus_pretrain.ckpt"
-    checkpoints = torch.load(path)
+    checkpoints = torch.load(path, map_location="cpu")
 
     hyperparams = checkpoints["hyper_parameters"]
 
@@ -54,178 +86,36 @@ def load_model() -> tuple[ContrastiveModel, Any]:
     return model, kwargs
 
 
-class Batch(TypedDict):
-    """
-    NPLIB1 dataset batch
+def spectra_loader(spectra: list[Spectra], featurizer: SpecFeaturizer, **kwargs):
+    """Given a spectra featurizer, produce a dataloader of batched spectra.
+    Works for both contrastive and fingerprint prediction
 
     Args:
-        matched: bool, (batch_size)
-        spec_indices: int, (batch_size)
-        mol_indices: int, (batch_size)
-        types: int, (batch_size, n)
-        form_vec: float, (batch_size, n, ?)
-        ion_vec: float, (batch_size, n)
-        intens: float, (batch_size, n)
-        names: mass spectra identifiers (CCMSLIB..., etc)
-        num_peaks: int, (batch_size,)
-        instruments: float, (batch_size,)
+        spectra: list of spectra objects
+        featurizer: spectra featurizer
+        kwargs: dataloader kwargs (batch_size, num_workers...)
     """
 
-    matched: Tensor
-    spec_indices: Tensor
-    mol_indices: Tensor
-    types: Tensor
-    form_vec: Tensor
-    ion_vec: Tensor
-    intens: Tensor
-    names: list[str]
-    num_peaks: Tensor
-    instruments: Tensor
-
-
-def load_dataset(
-    split: Literal["train", "test", "val"], **kwargs
-) -> tuple[DataLoader[Batch], dict[str, str]]:
-    """Load the given split of the NPLIB1 dataset.
-    Also returns a map from mass spectra identifier to
-    candidate molecules formula"""
-    featurizer = featurizers.get_paired_featurizer(**kwargs)
-
-    print("Loading labels from", kwargs["labels_file"])
-    print("Loading mass spectra from", kwargs["spec_folder"])
-
-    # Load the molecules and mass spectra
-    spectra_and_mols = datasets.get_paired_spectra(allow_none_smiles=True, **kwargs)
-    spectra_mol_pairs: list[tuple[Spectra, Mol]] = list(zip(*spectra_and_mols))
-
-    # Load the split
-    splits = pl.read_csv(kwargs["split_file"], separator="\t")
-    valid_names = splits.filter(pl.col("split") == split)["name"].to_list()
-
-    spectra_mol_pairs = [
-        (s, m) for s, m in spectra_mol_pairs if s.get_spec_name() in valid_names
-    ]
-    print("Loaded the", split, "split with", len(spectra_mol_pairs), "molecules")
-
-    dataset = datasets.SpectraMolDataset(
-        spectra_mol_list=spectra_mol_pairs, featurizer=featurizer, **kwargs
-    )
-    loader = datasets.SpecDataModule.get_paired_loader(
-        dataset,
-        batch_size=128,
-        shuffle=False,
+    return DataLoader(
+        [featurizer._featurize(spectrum) for spectrum in spectra],  # type: ignore
+        collate_fn=PeakFormulaTest.collate_fn,
+        **kwargs,
     )
 
-    spectra_to_formula = {
-        i.get_spec_name(): i.get_spectra_formula() for i in dataset.get_spectra_list()
-    }
 
-    return loader, spectra_to_formula
+def smiles_loader(smiles: list[str], **kwargs):
+    """Given smiles, returns a dataloader over batched fingerprints."""
+
+    def collate_fn(smiles: list[str]):
+        fingerprints = [fingerprint(smile) for smile in smiles]
+        return torch.tensor(np.stack(fingerprints), dtype=torch.float32)
+
+    return DataLoader(smiles, collate_fn=collate_fn, **kwargs)  # type: ignore
 
 
-def batch_to(batch: Batch, device: str) -> dict:
+def dict_to(batch: dict, device: str) -> dict:
     """Move the contents of a dict to a device"""
-    return {  # type: ignore
+    return {
         k: v.to(device=device, non_blocking=True) if hasattr(v, "to") else v
         for k, v in batch.items()
     }
-
-
-class SpectraEmbeddings(TypedDict):
-    names: list[str]
-    embeds: np.ndarray
-
-
-@torch.no_grad()
-def embed_spectra_loader(
-    loader: DataLoader[Batch], model: ContrastiveModel, device: str
-) -> SpectraEmbeddings:
-    """Compute spectra embeddings from a spectra dataloader"""
-
-    names = []
-    embeds = []
-
-    model.eval()
-    model.to(device)
-
-    for batch in tqdm(loader):
-        batch = batch_to(batch, device)
-        _, out = model.encode_spectra(batch)
-        embeds.append(out["contrast"].detach().cpu())
-        names.extend(batch["names"])
-
-    return {"names": names, "embeds": torch.cat(embeds, 0).numpy()}
-
-
-class Isomers(TypedDict):
-    ikeys: npt.NDArray[np.str_]
-    smiles: npt.NDArray[np.str_]
-    fps: npt.NDArray[np.uint8]
-
-
-def isomers(hdf: h5py.File, formula: str) -> Isomers:
-    """Get the isomer molecules for given formula"""
-    indices = np.where(np.array(hdf["formulae"]).astype(str) == formula)[0]
-
-    if not len(indices):
-        return {
-            "ikeys": np.array([]),
-            "smiles": np.array([]),
-            "fps": np.array([]),
-        }
-
-    offset = hdf["formula_offset"][indices[0]]
-    length = hdf["formula_lengths"][indices[0]]
-    sl = slice(offset, offset + length)
-
-    return {
-        "ikeys": hdf["ikeys"][sl],
-        "smiles": hdf["smiles"][sl],
-        "fps": np.unpackbits(hdf["fingerprints"][sl], axis=-1)[
-            ..., -hdf.attrs["num_bits"] :
-        ],
-    }
-
-
-@torch.no_grad()
-def embed_candidates(
-    isomers: Isomers, model: ContrastiveModel, device: str
-) -> np.ndarray:
-    loader = DataLoader(isomers["fps"], batch_size=128, shuffle=False)  # type: ignore
-
-    embeds = []
-
-    for batch in loader:
-        _, out = model.encode_mol({"mols": batch.to(device)})
-        embeds.append(out["contrast"].detach().cpu().numpy())
-
-    return np.vstack(embeds)
-
-
-@dataclass
-class CandidateSimilarities:
-    similarities: np.ndarray
-    truth: int
-
-    def normalized_truth_rank(self) -> float:
-        """Closer to 1 is better"""
-        rank = np.argsort(self.similarities)[self.truth]
-        return rank / len(self.similarities)
-
-    def retained_size(self, threshold: float) -> int:
-        return (self.similarities >= threshold).sum()
-
-    @staticmethod
-    def topk_accuracy(cands: list["CandidateSimilarities"], k: int):
-
-        correct = 0
-
-        for cand in cands:
-            rank = (
-                len(cand.similarities) - np.argsort(cand.similarities)[cand.truth] - 1
-            )
-
-            if rank < k:
-                correct += 1
-
-        return correct / len(cands)

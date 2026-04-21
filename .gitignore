@@ -21,8 +21,11 @@ analysis_ms/
 *.log
 .vscode/ 
 *.pkl
+*.tar.gz
 
 # Ignore all folders named data
 **/runs/
 Models/Any2Graph/Img2Graph/Coloring/data/
 Models/SpecBridge/data/
+
+/NPLIB1
