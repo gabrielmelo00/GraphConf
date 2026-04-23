@@ -95,7 +95,7 @@ def batch_spectras(spectras: list[Spectra], **params) -> Tensor:
 
 def candidates_loader(
     candidates: list[str], params, **kwargs
-) -> tuple[DataLoader[dgl.DGLHeteroGraph], list[str]]:
+) -> tuple[DataLoader[dgl.DGLHeteroGraph], list[str], list[bool]]:
     """Create a dataloader of batched graphs from a list of candidate smiles.
 
     Because the graph creation might fail, we need to precompute all graphs,
@@ -110,22 +110,30 @@ def candidates_loader(
 
     graphs: list[dgl.DGLHeteroGraph] = []
     smiles: list[str] = []
+    mask: list[bool] = []
 
     for candidate in candidates:
         mol = Chem.MolFromSmiles(candidate)
         if mol is None:
+            mask.append(False)
             continue
         cache = {}  # bypass builtin cache mechanism to avoid RAM explosion
         if not mol_to_graph(mol, "dummy", cache, params, "cpu"):
+            mask.append(False)
             continue
         graphs.append(cache["dummy"])
         smiles.append(candidate)
+        mask.append(True)
 
     def collate_fn(graphs: list[dgl.DGLHeteroGraph]):
         return dgl.batch(graphs)
 
-    return DataLoader(
-        graphs,  # type: ignore
-        collate_fn=collate_fn,
-        **kwargs,
-    ), smiles
+    return (
+        DataLoader(
+            graphs,  # type: ignore
+            collate_fn=collate_fn,
+            **kwargs,
+        ),
+        smiles,
+        mask,
+    )
