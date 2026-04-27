@@ -61,16 +61,21 @@ class CandidateSizeRegressor:
                     default_quantiles=target, **kwargs
                 )
 
-    def fit(self, distances: list[float], candidate_sizes: list[int]):
+    def fit(
+        self, distances: list[float], candidate_sizes: list[int], split: float = 0.8
+    ):
         """Fit the regressor on a calibration set."""
+        mask = np.random.random(len(distances)) < split
         np_distances = np.array(distances)
         np_candidate_sizes = np.array(candidate_sizes).reshape(-1, 1)
 
         # Fit the quantile regressor
-        self.regressor.fit(np_candidate_sizes, np_distances)
+        self.regressor.fit(np_candidate_sizes[mask], np_distances[mask])
 
         # Estimate the quantile of the residuals
-        residuals = np_distances - self.regressor.predict(np_candidate_sizes)
+        residuals = np_distances[~mask] - self.regressor.predict(
+            np_candidate_sizes[~mask]
+        )
         n = len(residuals)
         conformal_quantile = np.ceil((n + 1) * self.target) / n
         self._threshold = np.quantile(residuals, conformal_quantile)
@@ -115,8 +120,11 @@ class EmbeddingRegressor:
             nn.Linear(hidden, 1),
         ).to(device)
 
-    def fit(self, distances: list[float], embeddings: Tensor):
+    def fit(self, distances: list[float], embeddings: Tensor, split: float = 0.8):
         """Fit the regressor on a calibration set.
+
+        The regressor is trained on a split of the distances and embeddings,
+        then residuals are computed on the remaining split.
 
         Args:
             distances: list of non-conformity scores
@@ -137,7 +145,9 @@ class EmbeddingRegressor:
         batch_size = 32
         epoch = 1
 
-        dataset = TensorDataset(embeddings, torch.tensor(distances))
+        mask = np.random.random(len(distances)) < split
+
+        dataset = TensorDataset(embeddings[mask], torch.tensor(distances)[mask])
         loader = DataLoader(dataset, batch_size, shuffle=True)
         optimizer = Adam(self.model.parameters())
 
@@ -169,9 +179,12 @@ class EmbeddingRegressor:
             else:
                 remaining -= 1
 
-        # Estimate the quantile of the residuals
+        # Estimate the quantile of the residuals on the remaining split
         self.model.eval()
         preds: list[float] = []
+
+        dataset = TensorDataset(embeddings[~mask], torch.tensor(distances)[~mask])
+        loader = DataLoader(dataset, batch_size, shuffle=True)
 
         for embeds, _ in loader:
             embeds = embeds.to(self.device)
@@ -179,7 +192,7 @@ class EmbeddingRegressor:
                 pred = self.model(embeds).squeeze().cpu()
             preds.extend(pred)
 
-        residuals = np.array(distances) - np.array(preds)
+        residuals = np.array(distances)[~mask] - np.array(preds)
         n = len(residuals)
         conformal_quantile = np.ceil((n + 1) * 0.9) / n
         self._threshold = np.quantile(residuals, conformal_quantile)
