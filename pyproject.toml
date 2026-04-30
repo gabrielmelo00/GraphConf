@@ -26,6 +26,7 @@ dependencies = [
   "pyarrow>=23.0.1",
   "pygmtools>=0.5.5",
   "pyopenms>=3.5.0",
+  "pyvista>=0.47.3",
   "quantile-forest>=1.4.1",
   "rdkit>=2025.9.4",
   "ruamel-yaml>=0.19.1",
