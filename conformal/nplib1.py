@@ -75,12 +75,16 @@ def load_split(
 
     for spectrum, _, formula, inchikey in spectra.iter_rows():
         smiles = candidates.filter(pl.col("formula") == formula)
-        truth = smiles.filter(pl.col("inchikey") == inchikey).head(1)["smiles"].item()
+        truth = smiles.filter(pl.col("inchikey") == inchikey).head(1)["smiles"]
+
+        if len(truth) != 1:
+            continue
+
         entries.append(
             {
                 "spectrum": spectrum,
                 "candidates": smiles["smiles"].to_list(),
-                "truth": truth,
+                "truth": truth.item(),
             }
         )
 
