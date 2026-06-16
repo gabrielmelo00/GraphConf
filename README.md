@@ -32,9 +32,12 @@ _Gabriel Melo, Thibaut de Saivre, Anna Calissano, Florence d’Alché-Buc_
 
 ![Conformal Prediction](./conformal.webp)
 
-Installation:
+---
+
+## Installation:
 
 ```bash
+git submodule update --init --recursive
 uv sync --all-groups
 ```
 
