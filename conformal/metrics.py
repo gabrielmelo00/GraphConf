@@ -70,6 +70,18 @@ class Metrics:
     def __len__(self):
         return len(self.correct_coverage)
 
+    def __repr__(self) -> str:
+        strings: list[str] = [
+            f"coverage: {100 * self.coverage:.1f}%",
+            f"mean set size: {round(self.mean_set_size)}",
+            f"median set size: {round(self.median_set_size)}",
+            f"mean reduction: {100 * self.mean_reduction:.1f}%",
+            f"median reduction: {100 * self.median_reduction:.1f}%",
+            f"empty rate: {100 * self.empty_rate:.1f}%",
+        ]
+
+        return "\n".join(strings)
+
     ###########################################################################
     #                             Export utilities                            #
     ###########################################################################

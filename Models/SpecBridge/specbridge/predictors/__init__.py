@@ -1,1 +1,0 @@
-"""Predictors for spectrum prediction."""
